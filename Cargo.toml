@@ -1,0 +1,13 @@
+[package]
+name = "cargo-recycle"
+version = "0.1.0"
+license = "MIT/Apache-2.0"
+edition = "2018"
+authors = ["Marc-André Moreau <mamoreau@devolutions.net>"]
+
+[dependencies]
+dirs = "1.0"
+clap = { version = "2.31", features = ["yaml"] }
+
+[dependencies.fs_extra]
+git = "https://github.com/webdesus/fs_extra.git"

@@ -1,0 +1,14 @@
+name: cargo-recycle
+author: Marc-André Moreau <mamoreau@devolutions.net>
+about: A cargo build artifact recycling tool
+args:
+  - crate-dir:
+      long: crate-dir
+      takes_value: true
+      global: true
+      help: crate directory used for import/export
+subcommands:
+  - import:
+      about: "import build artifacts to a cargo crate"
+  - export:
+      about: "export build artifacts from a cargo crate"
