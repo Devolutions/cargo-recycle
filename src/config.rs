@@ -41,6 +41,10 @@ impl Config {
         if let Some(value) = matches.value_of("crate-dir") {
             self.crate_dir = PathBuf::from(value);
         }
+
+        if let Some(value) = matches.value_of("export-dir") {
+            self.export_dir = PathBuf::from(value);
+        }
     }
 
     pub fn load() -> Self {

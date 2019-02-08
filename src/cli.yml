@@ -7,6 +7,11 @@ args:
       takes_value: true
       global: true
       help: crate directory used for import/export
+  - export-dir:
+      long: export-dir
+      takes_value: true
+      global: true
+      help: build artifact import/export directory
 subcommands:
   - import:
       about: "import build artifacts to a cargo crate"
