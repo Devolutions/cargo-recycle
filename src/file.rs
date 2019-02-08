@@ -13,7 +13,6 @@ lazy_static! {
 }
 
 pub fn get_build_keys(target_dir: &PathBuf, build_type: &str) -> Vec<String> {
-
     let mut fingerprint_dir = target_dir.clone();
     fingerprint_dir.push(build_type);
     fingerprint_dir.push(".fingerprint");
@@ -26,7 +25,7 @@ pub fn get_build_keys(target_dir: &PathBuf, build_type: &str) -> Vec<String> {
     if let Ok(dir_content) = get_dir_content2(&fingerprint_dir, &dir_options) {
         for subdir in dir_content.directories {
             if &subdir == &fingerprint_dir.as_path().to_str().unwrap() {
-                //continue;
+                continue;
             }
             let dir = PathBuf::from(subdir);
             let build_key = dir.file_name().unwrap().to_str().unwrap();
@@ -37,6 +36,43 @@ pub fn get_build_keys(target_dir: &PathBuf, build_type: &str) -> Vec<String> {
                 fingerprint_lib_json_file.push(lib_json_file);
 
                 if fingerprint_lib_json_file.is_file() {
+                    build_keys.push(build_key.to_string());
+                }
+            }
+        }
+    }
+
+    return build_keys;
+}
+
+pub fn get_script_keys(target_dir: &PathBuf, build_type: &str) -> Vec<String> {
+    let mut build_dir = target_dir.clone();
+    build_dir.push(build_type);
+    build_dir.push("build");
+
+    let mut build_keys = Vec::new();
+
+    let mut dir_options = DirOptions::new();
+    dir_options.depth = 0;
+
+    if let Ok(dir_content) = get_dir_content2(&build_dir, &dir_options) {
+        for subdir in dir_content.directories {
+            if &subdir == &build_dir.as_path().to_str().unwrap() {
+                continue;
+            }
+            let dir = PathBuf::from(subdir);
+            let build_key = dir.file_name().unwrap().to_str().unwrap();
+
+            if RE_BUILD_KEY.is_match(build_key) {
+                let mut build_script_build_file = dir.clone();
+                build_script_build_file.push("build-script-build");
+
+                let mut output_file = dir.clone();
+                output_file.push("output");
+
+                if build_script_build_file.is_file() {
+                    build_keys.push(build_key.to_string());
+                } else if output_file.is_file() {
                     build_keys.push(build_key.to_string());
                 }
             }

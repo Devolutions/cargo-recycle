@@ -1,10 +1,8 @@
 
 use crate::config::Config;
-use crate::file::{get_build_keys,replace_in_file,RE_BUILD_KEY};
+use crate::file::{get_build_keys,get_script_keys,replace_in_file};
 
-pub fn export_build_unit(config: &Config, build_type: &str, build_key: &str) {
-    // export .fingerprint directory artifacts
-
+pub fn export_build_unit_fingerprint(config: &Config, build_type: &str, build_key: &str) {
     let mut copy_options = fs_extra::dir::CopyOptions::new();
     copy_options.overwrite = true;
     copy_options.copy_inside = true;
@@ -14,18 +12,18 @@ pub fn export_build_unit(config: &Config, build_type: &str, build_key: &str) {
     src_fingerprint_dir.push("target");
     src_fingerprint_dir.push(build_type);
     src_fingerprint_dir.push(".fingerprint");
-    src_fingerprint_dir.push(build_key.as_str());
+    src_fingerprint_dir.push(build_key);
 
     let mut dst_fingerprint_dir = config.export_dir.clone();
     dst_fingerprint_dir.push(build_type);
     dst_fingerprint_dir.push(".fingerprint");
-    dst_fingerprint_dir.push(build_key.as_str());
+    dst_fingerprint_dir.push(build_key);
 
     fs_extra::dir::create_all(&dst_fingerprint_dir,false).unwrap();
     fs_extra::dir::copy(src_fingerprint_dir, dst_fingerprint_dir, &copy_options).unwrap();
+}
 
-    // export deps directory artifacts
-
+pub fn export_build_unit_deps(config: &Config, build_type: &str, build_key: &str) {
     let mut copy_options = fs_extra::dir::CopyOptions::new();
     copy_options.overwrite = true;
 
@@ -38,9 +36,9 @@ pub fn export_build_unit(config: &Config, build_type: &str, build_key: &str) {
     dst_deps_dir.push(build_type);
     dst_deps_dir.push("deps");
 
-    let deps_d_file = format!("{}.d", build_key.as_str());
-    let deps_rlib_file = format!("lib{}.rlib", build_key.as_str());
-    let deps_rmeta_file = format!("lib{}.rmeta", build_key.as_str());
+    let deps_d_file = format!("{}.d", build_key);
+    let deps_rlib_file = format!("lib{}.rlib", build_key);
+    let deps_rmeta_file = format!("lib{}.rmeta", build_key);
 
     // deps src files
 
@@ -73,9 +71,31 @@ pub fn export_build_unit(config: &Config, build_type: &str, build_key: &str) {
     fs_extra::copy_items(&src_files, &dst_deps_dir, &copy_options).unwrap();
 
     // modify exported files
-
     replace_in_file(&dst_deps_d_file, config.cargo_home.to_str().unwrap(), "$CARGO_HOME");
     replace_in_file(&dst_deps_d_file, config.crate_dir.to_str().unwrap(), "$CRATE_DIR");
+}
+
+pub fn export_build_unit_build(config: &Config, build_type: &str, build_key: &str) {
+    let mut copy_options = fs_extra::dir::CopyOptions::new();
+    copy_options.overwrite = true;
+    copy_options.copy_inside = true;
+    copy_options.content_only = true;
+
+    let mut src_build_dir = config.crate_dir.clone();
+    src_build_dir.push("target");
+    src_build_dir.push(build_type);
+    src_build_dir.push("build");
+    src_build_dir.push(build_key);
+
+    if src_build_dir.exists() {
+        let mut dst_build_dir = config.export_dir.clone();
+        dst_build_dir.push(build_type);
+        dst_build_dir.push("build");
+        dst_build_dir.push(build_key);
+
+        fs_extra::dir::create_all(&dst_build_dir, false).unwrap();
+        fs_extra::dir::copy(src_build_dir, dst_build_dir, &copy_options).unwrap();
+    }
 }
 
 pub fn export_build_type(config: &Config, build_type: &str) {
@@ -85,11 +105,14 @@ pub fn export_build_type(config: &Config, build_type: &str) {
     let build_keys = get_build_keys(&target_dir, build_type);
 
     for build_key in build_keys {
-        if let Some(captures) = RE_BUILD_KEY.captures(build_key.as_str()) {
-            let build_name = &captures[1];
-            let build_meta = &captures[2];
-            export_build_unit(config, build_type, &build_name, &build_meta);
-        }
+        export_build_unit_fingerprint(config, build_type, &build_key);
+        export_build_unit_deps(config, build_type, &build_key);
+    }
+
+    let script_keys = get_script_keys(&target_dir, build_type);
+
+    for script_key in script_keys {
+        export_build_unit_build(config, build_type, &script_key);
     }
 }
 
