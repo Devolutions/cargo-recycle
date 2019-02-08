@@ -2,39 +2,40 @@
 use crate::config::Config;
 use crate::file::{get_build_keys,replace_in_file,RE_BUILD_KEY};
 
-pub fn export_build_unit(config: &Config, build_type: &str, build_key: &str) {
-    // export .fingerprint directory artifacts
+pub fn import_build_unit(config: &Config, build_type: &str, build_name: &str, build_meta: &str) {
+    let build_key = format!("{}-{}", build_name, build_meta);
+
+    // import .fingerprint directory artifacts
 
     let mut copy_options = fs_extra::dir::CopyOptions::new();
     copy_options.overwrite = true;
     copy_options.copy_inside = true;
     copy_options.content_only = true;
 
-    let mut src_fingerprint_dir = config.crate_dir.clone();
-    src_fingerprint_dir.push("target");
+    let mut src_fingerprint_dir = config.export_dir.clone();
     src_fingerprint_dir.push(build_type);
     src_fingerprint_dir.push(".fingerprint");
-    src_fingerprint_dir.push(build_key.as_str());
 
-    let mut dst_fingerprint_dir = config.export_dir.clone();
+    let mut dst_fingerprint_dir = config.crate_dir.clone();
+    dst_fingerprint_dir.push("target");
     dst_fingerprint_dir.push(build_type);
     dst_fingerprint_dir.push(".fingerprint");
     dst_fingerprint_dir.push(build_key.as_str());
 
     fs_extra::dir::create_all(&dst_fingerprint_dir,false).unwrap();
-    fs_extra::dir::copy(src_fingerprint_dir, dst_fingerprint_dir, &copy_options).unwrap();
+    fs_extra::dir::copy(&src_fingerprint_dir, &dst_fingerprint_dir, &copy_options).unwrap();
 
     // export deps directory artifacts
 
     let mut copy_options = fs_extra::dir::CopyOptions::new();
     copy_options.overwrite = true;
 
-    let mut src_deps_dir = config.crate_dir.clone();
-    src_deps_dir.push("target");
+    let mut src_deps_dir = config.export_dir.clone();
     src_deps_dir.push(build_type);
     src_deps_dir.push("deps");
 
-    let mut dst_deps_dir = config.export_dir.clone();
+    let mut dst_deps_dir = config.crate_dir.clone();
+    dst_deps_dir.push("target");
     dst_deps_dir.push(build_type);
     dst_deps_dir.push("deps");
 
@@ -74,13 +75,12 @@ pub fn export_build_unit(config: &Config, build_type: &str, build_key: &str) {
 
     // modify exported files
 
-    replace_in_file(&dst_deps_d_file, config.cargo_home.to_str().unwrap(), "$CARGO_HOME");
-    replace_in_file(&dst_deps_d_file, config.crate_dir.to_str().unwrap(), "$CRATE_DIR");
+    replace_in_file(&dst_deps_d_file, "$CARGO_HOME", config.cargo_home.to_str().unwrap());
+    replace_in_file(&dst_deps_d_file, "$CRATE_DIR", config.crate_dir.to_str().unwrap());
 }
 
-pub fn export_build_type(config: &Config, build_type: &str) {
-    let mut target_dir = config.crate_dir.clone();
-    target_dir.push("target");
+pub fn import_build_type(config: &Config, build_type: &str) {
+    let target_dir = config.export_dir.clone();
 
     let build_keys = get_build_keys(&target_dir, build_type);
 
@@ -88,17 +88,17 @@ pub fn export_build_type(config: &Config, build_type: &str) {
         if let Some(captures) = RE_BUILD_KEY.captures(build_key.as_str()) {
             let build_name = &captures[1];
             let build_meta = &captures[2];
-            export_build_unit(config, build_type, &build_name, &build_meta);
+            import_build_unit(config, build_type, &build_name, &build_meta);
         }
     }
 }
 
-pub fn export_rustc_info(config: &Config) {
-    let mut src_rustc_info_json = config.crate_dir.clone();
-    src_rustc_info_json.push("target");
+pub fn import_rustc_info(config: &Config) {
+    let mut src_rustc_info_json = config.export_dir.clone();
     src_rustc_info_json.push(".rustc_info.json");
 
-    let mut dst_rustc_info_json = config.export_dir.clone();
+    let mut dst_rustc_info_json = config.crate_dir.clone();
+    dst_rustc_info_json.push("target");
     dst_rustc_info_json.push(".rustc_info.json");
 
     let mut copy_options = fs_extra::file::CopyOptions::new();
@@ -108,8 +108,8 @@ pub fn export_rustc_info(config: &Config) {
     fs_extra::file::copy(&src_rustc_info_json, &dst_rustc_info_json, &copy_options).unwrap();
 }
 
-pub fn run_export(config: &Config) {
-    export_rustc_info(config);
-    export_build_type(config, "debug");
-    export_build_type(config, "release");
+pub fn run_import(config: &Config) {
+    import_rustc_info(config);
+    import_build_type(config, "debug");
+    import_build_type(config, "release");
 }

@@ -13,17 +13,20 @@ use std::error::Error;
 extern crate lazy_static;
 
 mod config;
+mod import;
 mod export;
 mod error;
 mod file;
 
 use crate::config::Config;
+use crate::import::run_import;
 use crate::export::run_export;
 
 fn run(matches: &clap::ArgMatches, config: &Config) -> Result<(), Box<Error>> {
     match matches.subcommand() {
         ("import", Some(_args)) => {
             println!("import!");
+            run_import(config);
             Ok(())
         },
         ("export", Some(_args)) => {
